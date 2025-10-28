@@ -1,10 +1,18 @@
+using Microsoft.EntityFrameworkCore;
 using P2_AP1_RonnelDeLaCruz.Components;
+using P2_AP1_RonnelDeLaCruz.DAL;
+using P2_AP1_RonnelDeLaCruz.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+var connectionString = builder.Configuration.GetConnectionString("SqliteConnection");
+builder.Services.AddDbContext<Contexto>(options => options.UseSqlite(connectionString));
+
+builder.Services.AddScoped<RegistrosService>();
 
 var app = builder.Build();
 
