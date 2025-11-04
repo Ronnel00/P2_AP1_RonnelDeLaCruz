@@ -1,0 +1,166 @@
+﻿@page "/Pedidos/Create"
+@rendermode InteractiveServer
+@using P2_AP1_RonnelDeLaCruz.Models
+@using P2_AP1_RonnelDeLaCruz.Services
+@inject PedidosService pedidosService
+@inject NavigationManager nav
+
+<PageTitle>Nuevo Pedido</PageTitle>
+
+<EditForm Model="pedido" OnValidSubmit="Guardar" FormName="formCreatePedido">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container mt-4">
+        <div class="card shadow-lg">
+            <div class="card-header">
+                <h4>Registrar Pedido</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha</label>
+                        <InputDate class="form-control" @bind-Value="pedido.Fecha" />
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Cliente</label>
+                        <InputText class="form-control" @bind-Value="pedido.NombreCliente" placeholder="Ingrese el nombre del cliente" />
+                    </div>
+                </div>
+
+                <hr />
+                <h5 class="text-center mt-3">Detalles del Pedido</h5>
+
+                <div class="row g-3 align-items-end mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Componente</label>
+                        <select class="form-select" @bind="nuevoDetalle.ComponenteId">
+                            <option value="0">-- Seleccione un componente --</option>
+                            @foreach (var c in componentes)
+                            {
+                                <option value="@c.ComponenteId">@c.Descripcion (Existencia: @c.Existencia)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Cantidad</label>
+                        <InputNumber class="form-control" @bind-Value="nuevoDetalle.Cantidad" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Precio</label>
+                        <InputNumber class="form-control" @bind-Value="nuevoDetalle.Precio" />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-success mt-4" @onclick="AgregarDetalle">
+                            <i class="bi bi-plus-circle"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <table class="table table-bordered table-striped mt-3">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Componente</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Subtotal</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (detalles.Count == 0)
+                        {
+                            <tr class="text-center"><td colspan="5">No hay componentes agregados</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var det in detalles)
+                            {
+                                <tr>
+                                    <td>@det.Componente.Descripcion</td>
+                                    <td class="text-center">@det.Cantidad</td>
+                                    <td class="text-end">@det.Precio.ToString("C")</td>
+                                    <td class="text-end">@((det.Cantidad * det.Precio).ToString("C"))</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-danger btn-sm" @onclick="() => EliminarDetalle(det)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+
+                <div class="text-end">
+                    <strong>Total: </strong> @pedido.Total.ToString("C")
+                </div>
+            </div>
+
+            <div class="card-footer text-center">
+                <button type="submit" class="btn btn-primary me-2">Guardar</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Pedidos pedido = new();
+    private List<PedidosDetalle> detalles = new();
+    private List<Componente> componentes = new();
+    private PedidosDetalle nuevoDetalle = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        componentes = await pedidosService.ObtenerComponentesAsync();
+        pedido.Fecha = DateTime.Today;
+    }
+
+    private void AgregarDetalle()
+    {
+        var comp = componentes.FirstOrDefault(c => c.ComponenteId == nuevoDetalle.ComponenteId);
+        if (comp == null || nuevoDetalle.Cantidad <= 0 || nuevoDetalle.Precio <= 0)
+            return;
+
+        if (detalles.Any(d => d.ComponenteId == comp.ComponenteId))
+            return;
+
+        detalles.Add(new PedidosDetalle
+            {
+                ComponenteId = comp.ComponenteId,
+                Componente = comp,
+                Cantidad = nuevoDetalle.Cantidad,
+                Precio = nuevoDetalle.Precio
+            });
+
+        nuevoDetalle = new();
+        ActualizarTotal();
+    }
+
+    private void EliminarDetalle(PedidosDetalle det)
+    {
+        detalles.Remove(det);
+        ActualizarTotal();
+    }
+
+    private void ActualizarTotal()
+    {
+        pedido.Total = detalles.Sum(d => d.Cantidad * d.Precio);
+    }
+
+    private async Task Guardar()
+    {
+        pedido.Detalles = detalles.Select(d => new PedidosDetalle
+            {
+                ComponenteId = d.ComponenteId,
+                Cantidad = d.Cantidad,
+                Precio = d.Precio
+            }).ToList();
+
+        await pedidosService.GuardarAsync(pedido);
+        nav.NavigateTo("/Pedidos/Index");
+    }
+
+    private void Cancelar() => nav.NavigateTo("/Pedidos/Index");
+}
