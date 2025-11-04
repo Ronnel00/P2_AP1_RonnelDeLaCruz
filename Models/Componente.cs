@@ -8,10 +8,13 @@ public class Componente
     [Key]
     public int ComponenteId { get; set; }
 
+    [Required, StringLength(100)]
     public string Descripcion { get; set; } = string.Empty;
 
+    [Range(0, double.MaxValue)]
     public decimal Precio { get; set; }
 
+    [Range(0, int.MaxValue)]
     public int Existencia { get; set; }
 
     [InverseProperty("Componente")]
