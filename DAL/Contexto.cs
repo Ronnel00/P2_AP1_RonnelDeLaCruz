@@ -5,7 +5,9 @@ namespace P2_AP1_RonnelDeLaCruz.DAL;
 
 public class Contexto : DbContext
 {
-    public DbSet<Registros> Registros { get; set; }
+    public DbSet<Pedidos> Pedidos { get; set; }
+    public DbSet<PedidosDetalle> PedidosDetalles { get; set; }
+    public DbSet<Componente> Componentes { get; set; }
     public Contexto(DbContextOptions<Contexto> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
