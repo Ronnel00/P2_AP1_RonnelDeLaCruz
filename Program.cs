@@ -10,9 +10,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var connectionString = builder.Configuration.GetConnectionString("SqliteConnection");
-builder.Services.AddDbContext<Contexto>(options => options.UseSqlite(connectionString));
+builder.Services.AddDbContextFactory<Contexto>(options => options.UseSqlite(connectionString));
 
-builder.Services.AddScoped<RegistrosService>();
+builder.Services.AddScoped<PedidosService>();
 
 var app = builder.Build();
 
