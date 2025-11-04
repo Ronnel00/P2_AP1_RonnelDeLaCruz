@@ -3,20 +3,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace P2_AP1_RonnelDeLaCruz.Models;
 
-public class Componente
+public class Pedidos
 {
     [Key]
-    public int ComponenteId { get; set; }
+    public int PedidoId { get; set; }
+
+    [Required]
+    public DateTime Fecha { get; set; } = DateTime.Today;
 
     [Required, StringLength(100)]
-    public string Descripcion { get; set; } = string.Empty;
+    public string NombreCliente { get; set; } = string.Empty;
 
     [Range(0, double.MaxValue)]
-    public decimal Precio { get; set; }
+    public decimal Total { get; set; }
 
-    [Range(0, int.MaxValue)]
-    public int Existencia { get; set; }
-
-    [InverseProperty("Componente")]
+    [InverseProperty("Pedido")]
     public virtual ICollection<PedidosDetalle> Detalles { get; set; } = new List<PedidosDetalle>();
 }

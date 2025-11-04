@@ -1,0 +1,160 @@
+﻿@page "/Pedidos"
+@page "/Pedidos/Index"
+@using P2_AP1_RonnelDeLaCruz.Models
+@using P2_AP1_RonnelDeLaCruz.Services
+@inject PedidosService pedidosService
+@inject NavigationManager nav
+@rendermode InteractiveServer
+
+<PageTitle>Pedidos</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Registro de Pedidos</h4>
+            <a class="btn btn-success" href="/Pedidos/Create">
+                <i class="bi bi-plus-circle"></i> Crear Pedido
+            </a>
+        </div>
+
+        <div class="card-body">
+            <div class="row align-items-end g-3 mb-3 text-center">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Pedido ID</label>
+                    <InputNumber class="form-control text-center" @bind-Value="filtroId" @oninput="(_) => AplicarFiltro()" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Cliente</label>
+                    <InputText class="form-control text-center" @bind-Value="filtroCliente" @oninput="(_) => AplicarFiltro()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Fecha</label>
+                    <InputDate class="form-control text-center" @bind-Value="filtroFecha" @oninput="(_) => AplicarFiltro()" />
+                </div>
+                <div class="col-md-2 d-grid">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary flex-fill" @onclick="AplicarFiltro">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                        <button class="btn btn-secondary flex-fill" title="Reiniciar filtros" @onclick="ResetFiltros">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (pedidosFiltrados.Any())
+                        {
+                            @foreach (var p in pedidosFiltrados)
+                            {
+                                <tr>
+                                    <td>@p.PedidoId</td>
+                                    <td>@p.Fecha.ToShortDateString()</td>
+                                    <td>@p.NombreCliente</td>
+                                    <td>@p.Total.ToString("C")</td>
+                                    <td>
+                                        <a class="btn btn-outline-primary btn-sm me-1" href="/Pedidos/Edit/@p.PedidoId">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-muted text-center">No hay pedidos que coincidan</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+            <span><strong>Pedidos:</strong> @pedidosFiltrados.Count</span>
+            <span><strong>Total general:</strong> @pedidosFiltrados.Sum(p => p.Total).ToString("C")</span>
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar eliminación</h5>
+                    <button type="button" class="btn-close" @onclick="() => mostrarModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Seguro que deseas eliminar este pedido?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => mostrarModal = false">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="EliminarConfirmado">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Pedidos> pedidos = new();
+    private List<Pedidos> pedidosFiltrados = new();
+    private int? filtroId;
+    private string filtroCliente = string.Empty;
+    private DateTime? filtroFecha;
+    private bool mostrarModal = false;
+    private int idEliminar;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pedidos = await pedidosService.ObtenerListaAsync(x => true);
+        pedidosFiltrados = pedidos;
+    }
+
+    private void AplicarFiltro()
+    {
+        pedidosFiltrados = pedidos
+            .Where(p =>
+                (!filtroId.HasValue || p.PedidoId == filtroId.Value) &&
+                (string.IsNullOrWhiteSpace(filtroCliente) || p.NombreCliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase)) &&
+                (!filtroFecha.HasValue || p.Fecha.Date == filtroFecha.Value.Date))
+            .ToList();
+    }
+
+    private void ResetFiltros()
+    {
+        filtroId = null;
+        filtroCliente = string.Empty;
+        filtroFecha = null;
+        pedidosFiltrados = pedidos;
+    }
+
+    private void ConfirmarEliminar(int id)
+    {
+        idEliminar = id;
+        mostrarModal = true;
+    }
+
+    private async Task EliminarConfirmado()
+    {
+        await pedidosService.EliminarAsync(idEliminar);
+        pedidos = await pedidosService.ObtenerListaAsync(x => true);
+        AplicarFiltro();
+        mostrarModal = false;
+    }
+}
